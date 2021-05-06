@@ -1,0 +1,65 @@
+version: '3.2'
+services:
+  elasticsearch:
+    build:
+      context: elasticsearch/
+    container_name: elasticsearch
+    volumes:
+      - type: bind
+        source: ./elasticsearch/config/elasticsearch.yml
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+        read_only: true
+      - type: volume
+        source: elasticsearch
+        target: /usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      ES_JAVA_OPTS: "-Xmx2048m -Xms2038m"
+      ELASTIC_PASSWORD: elastic
+      discovery.type: single-node
+      TZ: "Asia/Seoul"
+
+  fluentd:
+    build:
+      context: fluentd/
+    container_name: fluentd
+    volumes:
+      - type: bind
+        source: ./fluentd/conf
+        target: /fluentd/etc
+    depends_on:
+      - "elasticsearch"
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+      - "5140:5140"
+      - "5140:5140/udp"
+    environment:
+      TZ: "Asia/Seoul"
+
+  kibana:
+    build:
+      context: kibana/
+    container_name: kibana
+    volumes:
+      - type: bind
+        source: ./kibana/config/kibana.yml
+        target: /usr/share/kibana/config/kibana.yml
+        read_only: true
+    environment:
+      NODE_OPTIONS: "--max-old-space-size=2048"
+      TZ: "Asia/Seoul"
+    depends_on:
+      - "elasticsearch"
+    ports:
+      - "5601:5601"
+
+volumes:
+  elasticsearch:
+
+networks:
+  default:
+   external:
+    name: EFK
